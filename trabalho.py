@@ -268,7 +268,7 @@ if __name__ == "__main__":
 		print("python trabalho.py url")
 		sys.exit()
 
-	try
+	try:
 		# limpa arquivos baixados
 		with open('temp.txt') as html:
 		    content = html.read()
