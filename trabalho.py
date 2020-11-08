@@ -1,10 +1,12 @@
 import socket
 from struct import unpack
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 import sys
 import os
 import re
 
+
+# classe para baixar html
 class ResquestHTML():
 	def __init__(self, url):
 		self.header_delimiter = b'\r\n\r\n'
@@ -43,6 +45,8 @@ class ResquestHTML():
 
 		self.parse_data(response)
 
+		# caso o receba "Transfer-Encoding: chunked", o programa desconsidera o
+		# tamanho da página e baixa a tentar baixar até o servidor parar de responder
 		if(not self.should_stop and not self.chunked_size):
 			if(self.total_size > self.actual_size):
 				self.get_data()
@@ -52,6 +56,7 @@ class ResquestHTML():
 
 
 	def parse_data(self, response):
+		# se for a primeira requisição, é necessário parsear o cabeçalho
 		if(self.is_first_request):
 			index = response.index(self.header_delimiter)
 
@@ -124,9 +129,9 @@ class ResquestHTML():
 
 
 
-
+# classe para baixar img
 class ResquestIMG():
-	def __init__(self, host, path):
+	def __init__(self, url, path):
 		self.header_delimiter = b'\r\n\r\n'
 		self.is_first_request = True
 		self.headers = {}
@@ -136,17 +141,30 @@ class ResquestIMG():
 		self.chunked_size = False
 		self.should_stop = False
 		
-		self.target_host = host
-		self.path = path
+		if("http" in path or "www" in path):
+			parsed = urlparse(path)
+		else:
+			parsed = urlparse(urljoin(url,path))
+		self.target_host = parsed.netloc
+		self.path = parsed.path
 
 		self.define_socket()
 
 	def define_socket(self):
 		target_port = 80
 		self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  
-		self.client.connect((self.target_host,target_port)) 
+
+		try:
+			self.client.connect((self.target_host, target_port))
+		except Exception as e:
+			print(e)
+			print("\n")
+			self.should_stop = True
 
 	def get(self):
+		if(self.should_stop):
+			return b""
+
 		request = "GET %s HTTP/1.1\r\nHost: %s\r\n\r\n" % (self.path, self.target_host)
 		self.client.send(request.encode())
 
@@ -168,8 +186,6 @@ class ResquestIMG():
 			return
 
 		if(not self.chunked_size):
-			print(self.total_size, self.actual_size)
-			print("\n\n")
 			if(self.total_size > self.actual_size):
 				self.get_data()
 		else:
@@ -190,13 +206,11 @@ class ResquestIMG():
 			if(self.status != 200):
 				print("HTTP estatus diferente de 200")
 				print("Valor recebido: ", self.status)
+				print("\n")
 				self.should_stop = True
 				return
 
 			self.img = response[index+4:]
-
-			print(self.img)
-			print("\n\n")
 
 			try:
 				self.total_size = int(self.headers["Content-Length"])
@@ -224,17 +238,8 @@ class ResquestIMG():
 				continue
 			header_line = line.split(": ")
 			self.headers[header_line[0]] = header_line[1]
-		print(self.headers)
-		print("\n\n")
-
-
-
-
-
-
-
-
-
+		# print(self.headers)
+		# print("\n\n")
 
 
 
@@ -263,14 +268,17 @@ if __name__ == "__main__":
 		print("python trabalho.py url")
 		sys.exit()
 
-	# limpa arquivos baixados
-	with open('temp.txt') as html:
-	    content = html.read()
-	    for line in content.split("\n"):
-	    	try:
-	    		os.remove(line)
-	    	except:
-	    		pass
+	try
+		# limpa arquivos baixados
+		with open('temp.txt') as html:
+		    content = html.read()
+		    for line in content.split("\n"):
+		    	try:
+		    		os.remove(line)
+		    	except:
+		    		pass
+	except:
+		pass
 
 
 
@@ -289,7 +297,7 @@ if __name__ == "__main__":
 	content = ""
 	with open('pagina.html') as html:
 	    content = html.read()
-	    pat = re.compile (r'<img [^>]*src="([^"]+)')
+	    pat = re.compile (r'<img [^>]*src="([^"]+)', re.IGNORECASE)
 	    matches = pat.findall(content)
 
 
@@ -301,7 +309,9 @@ if __name__ == "__main__":
 		temp_names.append(name)
 
 		# baixa img
-		request2 = ResquestIMG(request.get_host(), img)
+		print("\nBaixando imagem: ", img)
+
+		request2 = ResquestIMG(sys.argv[1], img)
 		img_content = request2.get()
 
 		# salva a img em arquivo
