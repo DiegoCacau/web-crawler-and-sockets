@@ -3,9 +3,11 @@
 Este trabalho tem por objetivo baixar uma página html e todas as imagens contidas nela, salvar os arquivos na raiz do programa e renomear os paths das imagens para a serem encontrados na pasta local.
 
 ## Grupo
-Alunos: Diego Carrico Cacau
-	    Iago Rodrigues Agualuza
-
+Alunos: 
+```
+Diego Carrico Cacau
+Iago Rodrigues Agualuza
+```
 
 ## Uso
 Para rodar o programa, basta passar a url da página como parâmetro da chamada:
