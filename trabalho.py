@@ -3,6 +3,7 @@ from struct import unpack
 from urllib.parse import urlparse
 import sys
 import os
+import re
 
 class ResquestHTML():
 	def __init__(self, url):
@@ -230,55 +231,92 @@ class ResquestIMG():
 
 
 
-with open('temp.txt') as html:
-    content = html.read()
-    for line in content.split("\n"):
-    	print(line)
-    	try:
-    		os.remove(line)
-    	except:
-    		pass
-
-sys.exit()
-
-url = 'http://www.ic.uff.br/index.php/pt/'
-request = ResquestHTML(url)
-# html = request.get()
-
-# print(html)
-# with open("pagina.html", "w") as file:
-# 	file.write(html)
 
 
-import re
-content = ""
-with open('pagina.html') as html:
-    content = html.read()
-    pat = re.compile (r'<img [^>]*src="([^"]+)')
-    matches = pat.findall(content)
 
 
-print(matches)
-print("\n\n")
 
 
-temp_names = []
-for img in matches:
-	print(img)
-	name = os.path.basename(img)
-	temp_names.append(name)
-	# request2 = ResquestIMG(request.get_host(), img)
-	# img_content = request2.get()
-
-	# with open(name, 'wb') as file_to_write:
-	# 	file_to_write.write(img_content)
-
-	content = content.replace(img, name)
 
 
-with open("pagina2.html", "w") as file:
-	file.write(content)
 
-with open("temp.txt", "w") as file:
-	for name in temp_names:
-		file.write(name + "\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+
+	if(len(sys.argv) < 2):
+		print("Número de argumentos incorreto!")
+		print("A forma correta de rodar esse script é:")
+		print("python trabalho.py url")
+		sys.exit()
+
+	# limpa arquivos baixados
+	with open('temp.txt') as html:
+	    content = html.read()
+	    for line in content.split("\n"):
+	    	try:
+	    		os.remove(line)
+	    	except:
+	    		pass
+
+
+
+	url = sys.argv[1]   #'http://www.ic.uff.br/index.php/pt/'
+	
+	# baixa html
+	request = ResquestHTML(url)
+	html = request.get()
+
+	# salva html no arquivo
+	with open("pagina.html", "w") as file:
+		file.write(html)
+
+
+	# encontra <img> no html
+	content = ""
+	with open('pagina.html') as html:
+	    content = html.read()
+	    pat = re.compile (r'<img [^>]*src="([^"]+)')
+	    matches = pat.findall(content)
+
+
+
+	temp_names = []
+	for img in matches:
+
+		name = os.path.basename(img)
+		temp_names.append(name)
+
+		# baixa img
+		request2 = ResquestIMG(request.get_host(), img)
+		img_content = request2.get()
+
+		# salva a img em arquivo
+		with open(name, 'wb') as file_to_write:
+			file_to_write.write(img_content)
+
+		# muda a url da img, no html, para um path local
+		content = content.replace(img, name)
+
+
+	# reescreve o html
+	with open("pagina.html", "w") as file:
+		file.write(content)
+
+	# atualiza arquivos a serem deletados ao rodar o programa
+	with open("temp.txt", "w") as file:
+		for name in temp_names:
+			file.write(name + "\n")
